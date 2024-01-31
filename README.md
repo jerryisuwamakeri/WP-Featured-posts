@@ -4,6 +4,8 @@ How to Install this Plugin:
 <br>
 👉Download the plugin: By Visiting the plugin's Plugin repository here Download Plugin Here
 <br>
+<a href="https://github.com/jerryisuwamakeri/Wordpress-Plugin-for-Featured-Posts/blob/main/custom-featured-posts.zip">
+<br>
 👉Locate the plugin you want to install and download it to your local machine.
 <br>
 👉Log in to your WordPress admin panel:
