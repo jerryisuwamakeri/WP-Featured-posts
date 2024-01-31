@@ -1,0 +1,153 @@
+<?php
+/**
+ * Plugin Name: Custom Featured Posts
+ * Plugin URI: https://github.com/jerryisuwamakeri/Wordpress-Plugin-for-Featured-Posts
+ * Description: A custom plugin for managing featured posts.
+ * Version: 1.0.0
+ * Requires at least: 5.0
+ * Tested up to: Latest Version at this time.
+ * Author: Makeri Jerry Isuwa
+ * Author URI:https://github.com/jerryisuwamakeri
+ * Documentation URI:https://github.com/jerryisuwamakeri/Wordpress-Plugin-for-Featured-Posts/blob/main/README.md
+ * Text Domain: custom-featured-posts
+ * License: GPL-2.0+
+ * License URL: http://www.gnu.org/licenses/gpl-2.0.txt
+ */
+
+// Placing The Main Code for Plugin after Briefly Putting some META Info from line 1-12. (As a developer, you already Know this is a comment...LOL)
+/**
+ * Register the custom post type for featured posts.
+ */
+function cfp_register_featured_post_type() {
+    $labels = array(
+        'name'               => __( 'Featured Posts', 'custom-featured-posts' ),
+        'singular_name'      => __( 'Featured Post', 'custom-featured-posts' ),
+        'menu_name'          => __( 'Featured Posts', 'custom-featured-posts' ),
+        // Add more labels as needed.
+    );
+
+    $args = array(
+        'labels'             => $labels,
+        'public'             => true,
+        'publicly_queryable' => true,
+        'show_ui'            => true,
+        // Add more arguments as needed.
+    );
+
+    register_post_type( 'featured_post', $args );
+}
+add_action( 'init', 'cfp_register_featured_post_type' );
+/**
+ * Create the plugin settings page.
+ */
+function cfp_settings_page() {
+    add_options_page(
+        'Custom Featured Posts Settings',
+        'Custom Featured Posts',
+        'manage_options',
+        'cfp-settings',
+        'cfp_render_settings_page'
+    );
+}
+add_action( 'admin_menu', 'cfp_settings_page' );
+
+/**
+ * Render the plugin settings page.
+ */
+function cfp_render_settings_page() {
+    if ( ! current_user_can( 'manage_options' ) ) {
+        return;
+    }
+
+    // Save settings logic goes here.
+    if ( isset( $_POST['cfp_featured_category'] ) ) {
+        update_option( 'cfp_featured_category', sanitize_text_field( $_POST['cfp_featured_category'] ) );
+        echo '<div class="notice notice-success"><p>Settings saved.</p></div>';
+    }
+
+    $featured_category = get_option( 'cfp_featured_category' );
+    ?>
+    <div class="wrap">
+        <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
+        <form method="post" action="">
+            <table class="form-table">
+                <tr>
+                    <th scope="row"><label for="cfp_featured_category">Featured Category</label></th>
+                    <td>
+                        <?php
+                        $categories = get_categories();
+                        if ( $categories ) {
+                            echo '<select name="cfp_featured_category" id="cfp_featured_category">';
+                            echo '<option value="">Select a category</option>';
+                            foreach ( $categories as $category ) {
+                                echo '<option value="' . esc_attr( $category->slug ) . '" ' . selected( $featured_category, $category->slug, false ) . '>' . esc_html( $category->name ) . '</option>';
+                            }
+                            echo '</select>';
+                        } else {
+                            echo '<p>No categories found.</p>';
+                        }
+                        ?>
+                    </td>
+                </tr>
+            </table>
+            <?php submit_button(); ?>
+        </form>
+    </div>
+    <?php
+}
+//To Display at Homepage**
+/**
+ * Shortcode callback to display featured posts.
+ *
+ * @param array $atts Shortcode attributes.
+ * @return string Featured posts HTML output.
+ */
+function cfp_featured_posts_shortcode( $atts ) {
+    ob_start();
+
+    $atts = shortcode_atts(
+        array(
+            'count' => 5, // Default number of featured posts to display.
+        ),
+        $atts
+    );
+
+    $featured_category = get_option( 'cfp_featured_category' );
+
+    $query_args = array(
+        'post_type'      => 'post',
+        'posts_per_page' => absint( $atts['count'] ),
+    );
+
+    if ( ! empty( $featured_category ) ) {
+        $query_args['category_name'] = $featured_category;
+    }
+
+    $query = new WP_Query( $query_args );
+
+    if ( $query->have_posts() ) {
+        echo '<ul>';
+
+        while ( $query->have_posts() ) {
+            $query->the_post();
+            echo '<li>';
+            if ( has_post_thumbnail() ) {
+                echo '<div class="cfp-featured-image">' . get_the_post_thumbnail() . '</div>';
+            }
+            echo '<h3><a href="' . get_permalink() . '">' . get_the_title() . '</a></h3>';
+            echo '<div class="cfp-excerpt">' . get_the_excerpt() . '</div>';
+            echo '</li>';
+        }
+
+        echo '</ul>';
+    } else {
+        echo 'No featured posts found.';
+    }
+
+    wp_reset_postdata();
+
+    return ob_get_clean();
+}
+add_shortcode( 'cfp_featured_posts', 'cfp_featured_posts_shortcode' );
+//The Shortcute to use for Any Page Builder as Well as on the Widgets Feature, use "[cfp_featured_posts] as Shortcode"
+//To Specify the count for post(s) to show Use the Shortcode "[cfp_featured_posts count="3"]" to show three posts for instance.
